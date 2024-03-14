@@ -21,6 +21,10 @@ from pygame.locals import (
 import os
 
 from src.solver import DyeSolver2D
+from src.resources import (
+    border,
+    textbox_width,
+)
 
 # suppress ALSA error (WSL2 error I think)
 os.environ["SDL_AUDIODRIVER"] = "dsp"
@@ -34,9 +38,16 @@ DIAG_MM = DIAG_INCHES * 25.4
 # Pixels per mm
 PPMM = math.sqrt(math.pow(SCREEN_WIDTH, 2) + math.pow(SCREEN_HEIGHT, 2)) / DIAG_MM
 
+# colors
+WHITE = (255, 255, 255)
+BLACK = (0, 0, 0)
+
 
 class Rendering:
     """Handles the main rendering loop and the rendering of the mesh"""
+
+    MARGIN_X = 200
+    MARGIN_Y = 40
 
     def __init__(
         self,
@@ -48,74 +59,107 @@ class Rendering:
 
         # dimensions needs to be integers because pygame
         # works in discrete pixels
-        self.display_dim: Tuple[int, int] = (
-            round(self.mesh_dim[0] * PPMM),
-            round(self.mesh_dim[1] * PPMM),
-        )
         self.cell_dim: Tuple[int, int] = (
-            round(self.display_dim[0] / self.mesh_shape[1]),
-            round(self.display_dim[1] / self.mesh_shape[0]),
+            round(self.mesh_dim[0] * PPMM / self.mesh_shape[1]),
+            round(self.mesh_dim[1] * PPMM / self.mesh_shape[0]),
         )
+        self.display_dim: Tuple[int, int] = (
+            self.cell_dim[0] * self.mesh_shape[1],
+            self.cell_dim[1] * self.mesh_shape[0],
+        )
+
+        self.gui_dim: Tuple[int, int] = (
+            self.display_dim[0] + 2 * self.MARGIN_X,
+            self.display_dim[1] + 2 * self.MARGIN_Y,
+        )
+        self.mesh_pos: Tuple[int, int] = (self.MARGIN_X, self.MARGIN_Y)
 
         pygame.init()
         self.clock = pygame.time.Clock()
-        self.screen = pygame.display.set_mode(self.display_dim)
+        self.screen = pygame.display.set_mode(self.gui_dim)
+        self.running = True
 
     def run(self) -> None:
-        self.screen.fill((255, 255, 255))
-        running = True
-
-        while running:
-            self.screen.fill((255, 255, 255))
-
-            for event in pygame.event.get():
-                if event.type == KEYDOWN:
-                    if event.key == K_ESCAPE:
-                        running = False
-                    elif event.type == QUIT:
-                        running = False
-
-                if event.type == MOUSEBUTTONDOWN and event.button == 1:
-                    pos = event.pos
-                    mesh_i = math.floor(pos[1] / self.cell_dim[1])
-                    mesh_j = math.floor(pos[0] / self.cell_dim[0])
-                    self.solver.mesh[mesh_i, mesh_j] = 100
-
-            # test to see if mouse button is currently pressed down to
-            # enable holding and dragging :)
-            if pygame.mouse.get_pressed()[0]:
-                pos = pygame.mouse.get_pos()
-                self.solver.mesh[
-                    math.floor(pos[1] / self.cell_dim[1]),
-                    math.floor(pos[0] / self.cell_dim[0]),
-                ] = 100
+        while self.running:
+            self.screen.fill(WHITE)
+            self.__handle_events()
 
             # time since last call - for unsteady term
             dt = self.clock.tick()
 
-            # loop through all the cells and paint them black proportional
-            # to the dye concentration at each mesh
-            for i in range(self.mesh_shape[0]):
-                for j in range(self.mesh_shape[1]):
-                    color: int = round(255 - self.solver.mesh[i, j] * 2.55)
-                    if color > 255:
-                        color = 255
-                    self.screen.fill(
-                        (color, color, color),
-                        rect=(
-                            (j * self.cell_dim[0], i * self.cell_dim[1]),
-                            self.cell_dim,
-                        ),
-                    )
-
-            # update velocity with the sinusoidal function
+            # update the velocity then solve the problem
             self.solver.sinusoidal_velocity(pygame.time.get_ticks())
-
-            # actually solve the problem for the next time round
             self.solver.solve(dt / 1000)
+            self.__paint_mesh()
 
-            # push all the display changes to the screen
+            textbox_width(
+                self.screen,
+                (self.gui_dim[0] - self.MARGIN_X + 20, self.MARGIN_Y),
+                self.MARGIN_X - 25,
+                "Velocity: ZDFSD\nStuff: thing",
+            )
+
+            # paint all changes to the display
             pygame.display.flip()
 
         # once running != True, quit
         pygame.quit()
+
+    def __paint_mesh(self) -> None:
+        # loop through all the cells and paint them black proportional
+        # to the dye concentration at each mesh
+        mesh = pygame.Surface(self.display_dim)
+
+        for i in range(self.mesh_shape[0]):
+            for j in range(self.mesh_shape[1]):
+                color: int = round(255 - self.solver.mesh[i, j] * 2.55)
+                if color > 255:
+                    color = 255
+                mesh.fill(
+                    (color, color, color),
+                    rect=(
+                        (j * self.cell_dim[0], i * self.cell_dim[1]),
+                        self.cell_dim,
+                    ),
+                )
+        self.screen.blit(mesh, self.mesh_pos)
+        border(
+            self.screen,
+            self.mesh_pos,
+            self.display_dim,
+            "MESH ANIMATION",
+        )
+
+    def __handle_events(self) -> None:
+        for event in pygame.event.get():
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    self.running = False
+                elif event.type == QUIT:
+                    self.running = False
+
+            if event.type == MOUSEBUTTONDOWN and event.button == 1:
+                pos = event.pos
+                mesh_i = math.floor((pos[1] - self.MARGIN_Y) / self.cell_dim[1])
+                mesh_j = math.floor((pos[0] - self.MARGIN_X) / self.cell_dim[0])
+                if (
+                    mesh_i < self.solver.mh
+                    and mesh_j < self.solver.mw
+                    and mesh_i >= 0
+                    and mesh_j >= 0
+                ):
+                    self.solver.mesh[mesh_i, mesh_j] = 100
+
+        # test to see if mouse button is currently pressed down to
+        # enable holding and dragging :)
+        if pygame.mouse.get_pressed()[0]:
+            pos = pygame.mouse.get_pos()
+            mesh_i = math.floor((pos[1] - self.MARGIN_Y) / self.cell_dim[1])
+            mesh_j = math.floor((pos[0] - self.MARGIN_X) / self.cell_dim[0])
+            if (
+                mesh_i < self.solver.mh
+                and mesh_j < self.solver.mw
+                and mesh_i >= 0
+                and mesh_j >= 0
+            ):
+                self.solver.mesh[mesh_i, mesh_j] = 100

@@ -61,6 +61,10 @@ class DyeSolver2D:
         return i * self.mw + j
 
     def solve(self, dt: float = 0) -> npt.NDArray:
+        # if no time has passed, no change
+        if dt == 0:
+            return self.mesh
+
         # update coefficients in system
         for i in range(self.mh):
             for j in range(self.mw):
@@ -92,23 +96,19 @@ class DyeSolver2D:
                 if i != 0:
                     self.system[sys_index, self.__get_index(i - 1, j)] = -a_s
 
-                a_p_0: float
-                if dt == 0:
-                    a_p_0 = 1000000  # very large
-                else:
-                    a_p_0 = self.DENSITY * self.cw * self.ch / dt
+                a_p_0: float = self.DENSITY * self.cw * self.ch / dt
 
                 self.system[sys_index, sys_index] = a_e + a_w + a_n + a_s + a_p_0
 
                 self.b[sys_index, 0] = a_p_0 * self.mesh[i, j]
 
-                # solve
+        # solve the big system of equations
         solution = np.linalg.solve(self.system, self.b)
 
         # use solution to update mesh
         self.mesh = np.reshape(solution, (self.mesh.shape))
 
-        # set dye source to constant concentration
+        # set dye source cell to constant 100% concentration
         self.mesh[self.source_cell] = 100
 
         return self.mesh
