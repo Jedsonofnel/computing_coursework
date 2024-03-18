@@ -53,7 +53,8 @@ class AnimatedPlots:
         ax.set_aspect(1)
         ax.set_xlabel("Position [mm]")
         ax.set_ylabel("Position [mm]")
-        fig.colorbar(colormesh, ax=ax)
+        cbar = fig.colorbar(colormesh, ax=ax)
+        cbar.set_label("Dye Concentration [%]")
 
         plt.show()
 

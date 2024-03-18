@@ -16,14 +16,14 @@ MESH_DIM = (80, 80)
 # main entry point
 if __name__ == "__main__":
     solver = DyeSolver2D(MESH_SHAPE, MESH_DIM)
-    # plotter = AnimatedPlots(solver, anim_length=15)
+    plotter = AnimatedPlots(solver, anim_length=15)
     
     # Matplotlib animation (plot #1)
-    # plotter.run_dye_animation()
+    plotter.run_dye_animation()
 
     # Velocity plot (plot #2)
     # plotter.run_velocity_animation()
 
     # Pygame interactive animation (plot #3 AND really cool)
-    renderer = Rendering(solver)
-    renderer.run()
+    # renderer = Rendering(solver)
+    # renderer.run()
