@@ -14,8 +14,12 @@ import numpy.typing as npt
 
 
 class DyeSolver2D:
-    DENSITY = 2.55
-    DIFFUSIVITY = 1e-4
+    # dye is "red 40" -> solubility of 22g/100g in water
+    # density represents mass per 100% (maximum) dye concentration
+    # therefore there would be 220kg per cubic metre of dye in water
+    # at 100% concentration
+    DENSITY = 1000 * 0.22 # kg per cubic metre - dye has roughly same density as water
+    DIFFUSIVITY = 1e-6
 
     def __init__(
         self,
@@ -115,14 +119,17 @@ class DyeSolver2D:
 
     def sinusoidal_velocity(self, time_ms: float) -> None:
         time = time_ms / 1000
-        x_velocity = 0.15 * math.sin(time * 2 * math.pi / 23)
-        y_velocity = 0.1 * math.sin(time * 2 * math.pi / 10 + 3)
+        x_velocity = 0.15 * math.cos(time * 2 * math.pi / 23)
+        y_velocity = 0.1 * math.sin(time * 2 * math.pi / 10 + 54)
         self.flow_velocity = (x_velocity, y_velocity)
 
     def velocity_magnitude(self) -> float:
         return math.sqrt(
             math.pow(self.flow_velocity[0], 2) + math.pow(self.flow_velocity[1], 2)
         )
+
+    def velocity_theta(self) -> float:
+        return math.atan2(self.flow_velocity[1], self.flow_velocity[0])
 
     def peclet_x(self) -> float:
         return self.DENSITY * self.flow_velocity[0] * self.cw / self.DIFFUSIVITY

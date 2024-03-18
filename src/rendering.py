@@ -72,7 +72,10 @@ class Rendering:
             self.display_dim[0] + self.MARGIN_BIG + self.MARGIN_SMALL,
             self.display_dim[1] + 2 * self.MARGIN_SMALL,
         )
-        self.mesh_pos: Tuple[int, int] = (round(self.MARGIN_SMALL / 2), self.MARGIN_SMALL)
+        self.mesh_pos: Tuple[int, int] = (
+            round(self.MARGIN_SMALL / 2),
+            self.MARGIN_SMALL,
+        )
 
         pygame.init()
         self.clock = pygame.time.Clock()
@@ -98,22 +101,23 @@ class Rendering:
                 (self.gui_dim[0] - self.MARGIN_BIG, self.MARGIN_SMALL),
                 self.MARGIN_BIG - round(self.MARGIN_SMALL / 2),
                 f"""FPS: {self.clock.get_fps():.2f}
-CELLS = {self.solver.num}
-
+CELLS = {self.solver.mw} x {self.solver.mh}
+SIZE = {self.solver.mesh_dim[0]}mm x {self.solver.mesh_dim[1]}mm
 VELOCITY:
 v_x = {self.solver.flow_velocity[0]:.3f}
 v_y = {self.solver.flow_velocity[1]:.3f}
 magnitude = {self.solver.velocity_magnitude():.3f}
-
 PECLET NUMBER:
-P_x = {self.solver.peclet_x():.2f}
-P_y = {self.solver.peclet_y():.2f}
+P_x = {self.solver.peclet_x():.0f}
+P_y = {self.solver.peclet_y():.0f}
 (if |P| is > 2
 then upwind scheme
 is most suitable)
+CLICK on the mesh
+to add dye!
 
 <ESC> to exit :)""",
-                title="Variables"
+                title="Variables",
             )
 
             # paint all changes to the display
@@ -135,7 +139,10 @@ is most suitable)
                 mesh.fill(
                     (color, color, color),
                     rect=(
-                        (j * self.cell_dim[0], i * self.cell_dim[1]),
+                        (
+                            j * self.cell_dim[0],
+                            (self.mesh_shape[0] - i - 1) * self.cell_dim[1],
+                        ),
                         self.cell_dim,
                     ),
                 )
@@ -157,7 +164,11 @@ is most suitable)
 
             if event.type == MOUSEBUTTONDOWN and event.button == 1:
                 pos = event.pos
-                mesh_i = math.floor((pos[1] - self.MARGIN_SMALL) / self.cell_dim[1])
+                mesh_i = (
+                    self.mesh_shape[0]
+                    - 1
+                    - math.floor((pos[1] - self.MARGIN_SMALL) / self.cell_dim[1])
+                )
                 mesh_j = math.floor((pos[0] - self.MARGIN_SMALL / 2) / self.cell_dim[0])
                 if (
                     mesh_i < self.solver.mh
@@ -171,7 +182,7 @@ is most suitable)
         # enable holding and dragging :)
         if pygame.mouse.get_pressed()[0]:
             pos = pygame.mouse.get_pos()
-            mesh_i = math.floor((pos[1] - self.MARGIN_SMALL) / self.cell_dim[1])
+            mesh_i = self.mesh_shape[0] - 1 - math.floor((pos[1] - self.MARGIN_SMALL) / self.cell_dim[1])
             mesh_j = math.floor((pos[0] - self.MARGIN_SMALL / 2) / self.cell_dim[0])
             if (
                 mesh_i < self.solver.mh
