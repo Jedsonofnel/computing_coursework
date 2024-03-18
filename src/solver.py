@@ -118,3 +118,14 @@ class DyeSolver2D:
         x_velocity = 0.15 * math.sin(time * 2 * math.pi / 23)
         y_velocity = 0.1 * math.sin(time * 2 * math.pi / 10 + 3)
         self.flow_velocity = (x_velocity, y_velocity)
+
+    def velocity_magnitude(self) -> float:
+        return math.sqrt(
+            math.pow(self.flow_velocity[0], 2) + math.pow(self.flow_velocity[1], 2)
+        )
+
+    def peclet_x(self) -> float:
+        return self.DENSITY * self.flow_velocity[0] * self.cw / self.DIFFUSIVITY
+
+    def peclet_y(self) -> float:
+        return self.DENSITY * self.flow_velocity[1] * self.ch / self.DIFFUSIVITY

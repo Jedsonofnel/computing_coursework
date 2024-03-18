@@ -21,6 +21,7 @@ BG = (255, 255, 255)
 
 pygame.font.init()
 font = pygame.font.Font(os.path.join("res", "fonts", "JetBrainsMono-Regular.ttf"), 20)
+font_para = pygame.font.Font(os.path.join("res", "fonts", "JetBrainsMono-Regular.ttf"), 16)
 
 
 def paragraph(
@@ -33,7 +34,7 @@ def paragraph(
     max_width: int = 0
 
     for i in range(len(lines)):
-        line_surface: pygame.Surface = font.render(lines[i], True, color)
+        line_surface: pygame.Surface = font_para.render(lines[i], True, color)
         line_surfaces.append(line_surface)
         if line_surface.get_width() > max_width:
             max_width = line_surface.get_width()
@@ -52,7 +53,7 @@ def paragraph(
         if y != 0:
             y += i * margin
 
-        paragraph_surface.blit(line_surfaces[i], (0, y))
+        paragraph_surface.blit(line_surfaces[i], (2, y))
 
     return paragraph_surface
 
