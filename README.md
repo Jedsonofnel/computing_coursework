@@ -3,6 +3,8 @@
 
 Written by Jed Nelson and Sophie Morris.
 
+The key theory behind this convection/diffusion solver comes from Chapter 5 of "Numerical Heat Transfer and Fluid Flow" by Patankar S (published 1980).
+
 ## Requirements
 Required libraries are:
 - numpy
