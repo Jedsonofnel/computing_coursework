@@ -1,5 +1,9 @@
 """
-Object for creating animations
+Object for creating animations with matplotlib to fulfill
+the "3 different plots requirements"
+
+Ultimately the pygame thing is pretty cool so I'd mostly play
+with that tbh
 """
 
 from src.solver import DyeSolver2D
@@ -16,7 +20,7 @@ class AnimatedPlots:
         self.length = anim_length
 
         self.num_frames: int = self.FPS * self.length
-        self.time_step: float = 1 / self.FPS * 1000 # in ms
+        self.time_step: float = 1 / self.FPS * 1000  # in ms
 
         self.dye_data = np.zeros((self.num_frames, self.solver.mh, self.solver.mw))
 
@@ -30,7 +34,7 @@ class AnimatedPlots:
 
         self.x_pos, self.y_pos = np.meshgrid(x_values, y_values, indexing="xy")
 
-    def run_dye_animation(self) -> None:
+    def run_dye_animation(self, save: bool = False) -> None:
         print(f"CALCULATING DYE DISTRIBUTION OVER {self.length} SECONDS")
         print("may take a few moments...")
 
@@ -39,14 +43,16 @@ class AnimatedPlots:
             self.dye_data[frame] = self.solver.solve(self.time_step / 1000)
 
         fig, ax = plt.subplots()
-        colormesh = ax.pcolormesh(self.x_pos, self.y_pos, self.dye_data[0], cmap="plasma")
+        colormesh = ax.pcolormesh(
+            self.x_pos, self.y_pos, self.dye_data[0], cmap="plasma"
+        )
 
         def update(frame):
             frame_data = self.dye_data[frame]
             colormesh.set_array(frame_data.ravel())
             return colormesh
 
-        ani = animation.FuncAnimation(
+        anim = animation.FuncAnimation(
             fig=fig, func=update, frames=self.num_frames, interval=self.time_step
         )
         ax.set_title("Dye Concentration Plot In Water Flow")
@@ -55,9 +61,15 @@ class AnimatedPlots:
         ax.set_ylabel("Position [mm]")
         cbar = fig.colorbar(colormesh, ax=ax)
         cbar.set_label("Dye Concentration [%]")
-
         plt.show()
 
+        # save the animation as an mp4 - requires FFMpeg installed on the system
+        if save:
+            writervideo = animation.FFMpegWriter(fps=30)
+            anim.save("matplotlib_animation.mp4", writer=writervideo)
+            plt.close()
+    
+    # little polar plot of the velocity
     def run_velocity_animation(self) -> None:
         velocities = np.zeros((self.num_frames, 2))
 
@@ -66,10 +78,10 @@ class AnimatedPlots:
             velocities[frame, 1] = self.solver.velocity_magnitude()
             velocities[frame, 0] = self.solver.velocity_theta()
 
-        fig = plt.figure(figsize=(6,6))
+        fig = plt.figure(figsize=(6, 6))
         ax = plt.subplot(111, polar=True)
 
-        line, = ax.plot([],[])
+        (line,) = ax.plot([], [])
         ax.set_ylim((0, 0.2))
         ax.set_yticks([0.05, 0.10, 0.15, 0.20])
         ax.set_ylabel("Magnitude")
@@ -80,11 +92,9 @@ class AnimatedPlots:
             line.set_xdata([0, velocities[frame, 0]])
             line.set_ydata([0, velocities[frame, 1]])
             return line
-        
+
         ani = animation.FuncAnimation(
-            fig=fig, func=update,frames=self.num_frames, interval=self.time_step
+            fig=fig, func=update, frames=self.num_frames, interval=self.time_step
         )
-
-
 
         plt.show()

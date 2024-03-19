@@ -19,7 +19,7 @@ class DyeSolver2D:
     # therefore there would be 220kg per cubic metre of dye in water
     # at 100% concentration
     DENSITY = 1000 * 0.22 # kg per cubic metre - dye has roughly same density as water
-    DIFFUSIVITY = 1e-6
+    DIFFUSIVITY = 1e-6 # comes from literature
 
     def __init__(
         self,
